@@ -33,7 +33,10 @@ export default function DoctorDashboard({ user, onLogout, onEmergencyAccess, eme
     emergencyAccess[selectedPatient.id] &&
     new Date() < emergencyAccess[selectedPatient.id].expiryTime
 
-  const doctorTitle = user.role.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+const doctorTitle = typeof user === "string"
+  ? user.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+  : "Doctor"
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,7 +44,7 @@ export default function DoctorDashboard({ user, onLogout, onEmergencyAccess, eme
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
           <div className="text-white">
             <h1 className="text-3xl font-bold">MediCare</h1>
-            <p className="text-blue-100 text-sm">EHR Management System - {doctorTitle}</p>
+            <p className="text-blue-100 text-sm">EHR Management System - General Physician</p>
           </div>
           <button
             onClick={onLogout}
