@@ -1,246 +1,122 @@
 "use client"
 
 import { useState } from "react"
-import { mockPatients } from "@/context/mockData"
 
-export default function FrontDeskDashboard({ user, onLogout, patients, onRegisterPatient }) {
-  const [showForm, setShowForm] = useState(false)
-  const [registeredPatients, setRegisteredPatients] = useState(mockPatients)
-  const [formData, setFormData] = useState({
-    unitStayId: "",
-    name: "",
-    gender: "",
-    age: "",
-    address: "",
-    phone: "",
-    email: "",
-    aadhaar: "",
-  })
+export default function DoctorDashboard({ user, onLogout }) {
+  const [searchPatientId, setSearchPatientId] = useState("")
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  // Front desk password (Layer A)
+  const password = "FrontDesk@2025!"
 
-  const handleSubmit = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault()
-    const newPatient = {
-      ...formData,
-      id: `P${String(registeredPatients.length + 1).padStart(3, "0")}`,
-      password: "password123",
-      dob: new Date(Date.now() - Number.parseInt(formData.age) * 365.25 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      medicalHistory: "",
-      currentMedications: "",
-      diagnosis: "",
-      symptoms: "",
-      allergies: "",
-      doctorAssigned: "",
-      testResults: "",
-      prescriptions: [],
-      doctorNotes: "",
-      reports: [],
-      admissionDate: new Date().toISOString().split("T")[0],
-      dischargeDate: null,
-      wardRoom: "",
-      treatmentCost: 0,
-      insuranceProvider: "",
-      paymentStatus: "pending",
-      totalBill: 0,
+
+    if (!searchPatientId) {
+      setError("Please enter a Patient ID")
+      return
     }
-    setRegisteredPatients((prev) => [...prev, newPatient])
-    onRegisterPatient(newPatient)
-    setFormData({
-      unitStayId: "",
-      name: "",
-      gender: "",
-      age: "",
-      address: "",
-      phone: "",
-      email: "",
-      aadhaar: "",
-    })
-    setShowForm(false)
-    alert("Patient registered successfully!")
+
+    setLoading(true)
+    setError(null)
+    setSelectedPatient(null)
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/fetch_frontdesk_data",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          // ✅ Send Patient ID as STRING (IMPORTANT)
+          body: JSON.stringify({
+            patientId: searchPatientId,
+            password
+          })
+        }
+      )
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || "Failed to fetch patient data")
+      }
+
+      const data = await response.json()
+      setSelectedPatient(data)
+    } catch (err) {
+      setError(err.message || "Patient not found or error fetching data")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-r from-blue-600 to-teal-600 border-b border-blue-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-teal-600 border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
           <div className="text-white">
             <h1 className="text-3xl font-bold">MediCare</h1>
-            <p className="text-blue-100 text-sm">EHR Management System - Front Desk</p>
+            <p className="text-blue-100 text-sm">Front Desk Dashboard</p>
           </div>
           <button
             onClick={onLogout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-red-500 text-white rounded-lg"
           >
             Logout
           </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <p className="text-gray-600 text-sm">Total Patients</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{registeredPatients.length}</p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <p className="text-gray-600 text-sm">Active Registrations</p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
-              {registeredPatients.filter((p) => !p.dischargeDate).length}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <p className="text-gray-600 text-sm">Today's Check-ins</p>
-            <p className="text-3xl font-bold text-green-600 mt-2">
-              {registeredPatients.filter((p) => p.admissionDate === new Date().toISOString().split("T")[0]).length}
-            </p>
-          </div>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Search */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">🔍 Search Patient</h2>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              value={searchPatientId}
+              onChange={(e) => setSearchPatientId(e.target.value)}
+              placeholder="Enter Patient ID"
+              className="flex-1 px-4 py-2 border rounded-lg"
+            />
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+            >
+              {loading ? "Loading..." : "Search"}
+            </button>
+          </form>
         </div>
 
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="mb-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          {showForm ? "✕ Close Form" : "+ Register New Patient"}
-        </button>
+        {/* Error */}
+        {error && <p className="text-red-600 mt-4">{error}</p>}
 
-        {showForm && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📋 Register New Patient</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  name="unitStayId"
-                  placeholder="Patient Unit Stay ID"
-                  value={formData.unitStayId}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Full Name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <input
-                  type="number"
-                  name="age"
-                  placeholder="Age"
-                  value={formData.age}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2"
-                  required
-                />
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Phone Number"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <input
-                  type="text"
-                  name="aadhaar"
-                  placeholder="Aadhaar / National ID"
-                  value={formData.aadhaar}
-                  onChange={handleInputChange}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                Register Patient
-              </button>
-            </form>
+        {/* Patient Details */}
+        {selectedPatient && (
+          <div className="bg-white mt-6 rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 bg-blue-50 border-b">
+              <h2 className="text-lg font-semibold">
+                {selectedPatient.Name}
+              </h2>
+              <p className="text-sm text-gray-600">
+                Patient ID: {selectedPatient.Patient_id}
+              </p>
+            </div>
+
+            <div className="p-6 space-y-3 text-sm">
+              <p><strong>Gender:</strong> {selectedPatient.Gender}</p>
+              <p><strong>Age:</strong> {selectedPatient.Age}</p>
+              <p><strong>Address:</strong> {selectedPatient.Address}</p>
+              <p><strong>Phone:</strong> {selectedPatient.Phone_number}</p>
+              <p><strong>Email:</strong> {selectedPatient.Email}</p>
+              <p><strong>Aadhaar:</strong> {selectedPatient.Aadhaar}</p>
+            </div>
           </div>
         )}
-
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-teal-50">
-            <h2 className="text-lg font-semibold text-gray-900">Registered Patients</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Patient ID</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Unit Stay ID</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Gender</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Aadhaar</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {registeredPatients.map((patient) => (
-                  <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{patient.id}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-600">{patient.unitStayId}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{patient.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{patient.gender}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{patient.phone}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{patient.aadhaar}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          patient.dischargeDate ? "bg-gray-100 text-gray-800" : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {patient.dischargeDate ? "Discharged" : "Active"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   )
