@@ -108,7 +108,7 @@ export default function BillingDashboard({ user, onLogout, onUpdateStatus }) {
                     filter === tab ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600"
                   }`}
                 >
-                  {tab === "all" ? "📋 All Patients" : tab === "pending" ? "⏳ Pending Payment" : "✅ Payment Completed"}
+                  {tab === "all" ? "All Patients" : tab === "pending" ? "Pending Payment" : "Payment Completed"}
                 </button>
               ))}
             </div>
@@ -150,10 +150,10 @@ export default function BillingDashboard({ user, onLogout, onUpdateStatus }) {
                             }`}
                           >
                             {p.paymentStatus === "pending"
-                              ? "⏳ Pending"
+                              ? "Pending"
                               : p.paymentStatus === "paid"
-                              ? "✅ Paid"
-                              : "🏥 Discharged"}
+                              ? "Paid"
+                              : "Discharged"}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm">
